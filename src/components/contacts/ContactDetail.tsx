@@ -23,6 +23,7 @@ import {
   MessageCircle,
   Copy,
   Check,
+  Star,
 } from "lucide-react";
 import { formatCurrency, formatDate, formatRelativeDate, cleanPhoneForWhatsApp } from "@/lib/constants";
 import { ACTIVITY_TYPE_CONFIG, SOURCE_LABELS } from "@/lib/constants";
@@ -78,6 +79,7 @@ export function ContactDetailClient({
   const [showEditForm, setShowEditForm] = useState(false);
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [requestingReview, setRequestingReview] = useState(false);
 
   const handleCopy = async (value: string, field: string) => {
     try {
@@ -120,6 +122,41 @@ export function ContactDetailClient({
     }
   };
 
+  const handleRequestReview = async (platform: "google" | "facebook" | "instagram") => {
+    if (!contact.phone) {
+      toast.error("Este contacto no tiene numero de telefono");
+      return;
+    }
+
+    setRequestingReview(true);
+    try {
+      const res = await fetch("/api/reviews/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contactId: contact.id,
+          platform,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Error al generar el enlace");
+        return;
+      }
+
+      // Open WhatsApp with the link
+      window.open(data.whatsappLink, "_blank");
+      toast.success("Enlace de reseña enviado por WhatsApp");
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al solicitar reseña");
+    } finally {
+      setRequestingReview(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -143,6 +180,42 @@ export function ContactDetailClient({
           </p>
         </div>
         <div className="flex gap-2">
+          <div className="relative group">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!contact.phone || requestingReview}
+              className="cursor-pointer"
+            >
+              <Star className="h-4 w-4 mr-1" />
+              Reseña
+            </Button>
+            {contact.phone && (
+              <div className="absolute right-0 top-full mt-1 hidden group-hover:block bg-popover border rounded-md shadow-md z-10">
+                <button
+                  onClick={() => handleRequestReview("google")}
+                  disabled={requestingReview}
+                  className="block w-full text-left px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                >
+                  Google
+                </button>
+                <button
+                  onClick={() => handleRequestReview("facebook")}
+                  disabled={requestingReview}
+                  className="block w-full text-left px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                >
+                  Facebook
+                </button>
+                <button
+                  onClick={() => handleRequestReview("instagram")}
+                  disabled={requestingReview}
+                  className="block w-full text-left px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                >
+                  Instagram
+                </button>
+              </div>
+            )}
+          </div>
           <Button
             variant="outline"
             size="sm"
