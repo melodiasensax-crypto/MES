@@ -71,6 +71,25 @@ export const activities = sqliteTable("activities", {
     .$defaultFn(() => new Date()),
 });
 
+export const reviews = sqliteTable("reviews", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  token: text("token").notNull().unique(),
+  contactId: text("contact_id")
+    .notNull()
+    .references(() => contacts.id),
+  platform: text("platform").notNull(), // "google" | "facebook" | "instagram"
+  rating: integer("rating"), // 1-5 stars
+  comment: text("comment"),
+  status: text("status").notNull().default("pending"), // "pending" | "submitted" | "expired"
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  submittedAt: integer("submitted_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const crmSettings = sqliteTable("crm_settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
